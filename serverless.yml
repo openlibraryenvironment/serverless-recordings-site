@@ -1,0 +1,76 @@
+service: recording-site
+frameworkVersion: '2 || 3'
+
+provider:
+  name: aws
+  runtime: python3.8
+  architecture: arm64
+  memorySize: 128
+  lambdaHashingVersion: 20201221
+  region: ${opt:region, env:AWS_REGION, 'us-east-1'}
+  logRetentionInDays: ${opt:logretention, env:AWS_LOG_RETENTION, '14'}
+  httpApi:
+    useProviderTags: true
+    cors: true
+  tags:
+    Purpose: ${self:custom.stack_name}
+  deploymentBucket:
+    tags:
+      Purpose: ${self:service}
+
+
+custom:
+  default_stage: dev
+  stage: ${opt:stage, self:custom.default_stage}
+  stack_name: ${self:service}-${self:custom.stage}
+  # Store configuration and secrets in `config.yml`.  See
+  # https://www.richdevelops.dev/blog/keeping-secrets-out-of-git
+  config: ${file(config.yml):${self:custom.stage}}
+
+  pythonRequirements:
+    pythonBin: .venv/bin/python
+    dockerizePip: false
+
+  # customDomain:
+  #   domainName: ${self:custom.config.HOSTNAME}
+  #   stage: ${self:custom.stage}
+  #   basePath: ${self:custom.config.BASE_PATH}
+  #   certificateName: ${self:custom.config.CERTIFICATE_NAME}
+  #   createRoute53Record: true
+  #   endpointType: 'regional'
+  #   securityPolicy: tls_1_2
+  #   apiType: http
+  #   autoDomain: false
+	
+  prune:
+    automatic: true
+    number: 3
+
+
+functions:
+  hello:
+    handler: recording_site.handler.hello
+    timeout: 10
+    environment:
+      BASE_PATH: ${self:custom.config.BASE_PATH}
+
+
+# CloudFormation resource templates
+resources:
+  Description: Generate the website for Zoom recordings, using a serverless(.)com stack
+
+
+package:
+  include:
+    # - something
+  exclude:
+    - node_modules/**
+    - .venv/**
+    - __pycache__
+    - config.yml
+
+plugins:
+  - serverless-python-requirements
+#  - serverless-domain-manager
+  - serverless-prune-plugin
+  - serverless-iam-roles-per-function
