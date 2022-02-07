@@ -48,16 +48,125 @@ custom:
 
 
 functions:
-  hello:
-    handler: recording_site.handler.hello
+  queue_receiver:
+    handler: serverless_recordings_site.queue_receiver.handler
     timeout: 10
     environment:
       BASE_PATH: ${self:custom.config.BASE_PATH}
-
+      NOTIFY_WEBBUILDER_QUEUE_ARN: ${self:custom.config.NOTIFY_WEBBUILDER_QUEUE_ARN}
+      MEETINGS_TABLE_ARN: ${self:custom.config.MEETINGS_TABLE_ARN}
+      WEBSITE_BUCKET: !Ref WebsiteBucket
+    iamRoleStatementsInherit: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - sqs:ReceiveMessage
+          - sqs:DeleteMessage
+          - sqs:GetQueueUrl
+        Resource: ${self:custom.config.NOTIFY_WEBBUILDER_QUEUE_ARN}
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+          - dynamodb:Scan
+          - dynamodb:GetItem
+          - dynamodb:PutItem
+          - dynamodb:UpdateItem
+          - dynamodb:DeleteItem
+        Resource: ${self:custom.config.MEETINGS_TABLE_ARN}
+      - Effect: Allow
+        Action:
+          - s3:HeadObject
+          - s3:GetObject
+          - s3:PutObject
+          - s3:PutObjectAcl
+        Resource:
+          Fn::Join:
+            - ""
+            - - "arn:aws:s3:::"
+              - "Ref" : "WebsiteBucket"
+              - "/*"
 
 # CloudFormation resource templates
 resources:
   Description: Generate the website for Zoom recordings, using a serverless(.)com stack
+  Resources:
+    WebsiteBucket:
+      Type: AWS::S3::Bucket
+      Properties: 
+        BucketName: ${self:custom.config.WEBSITE_BUCKET}
+        AccessControl: Private
+        WebsiteConfiguration:
+          IndexDocument: index.html
+          ErrorDocument: error.html
+
+    # WebsiteBucketPolicy:
+    #     Type: AWS::S3::BucketPolicy
+    #     Properties:
+    #       Bucket: !Ref WebsiteBucket
+    #       PolicyDocument:
+    #         Version: '2012-10-17'
+    #         Statement:
+    #           - Effect: Allow
+    #             Principal:
+    #               AWS: !Sub 'arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${WebsiteDistributionOriginIdentity}'
+    #             Action: 's3:GetObject'
+    #             Resource: !GetAtt WebsiteBucket.Arn
+            
+    WebsiteDistribution:
+      Type: AWS::CloudFront::Distribution
+      Properties:
+        DistributionConfig:
+          Aliases:
+            - ${self:custom.config.HOSTNAME}
+          Origins:
+            - DomainName: !GetAtt WebsiteBucket.RegionalDomainName
+              Id: S3-private-bucket
+              S3OriginConfig:
+                OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${WebsiteDistributionOriginIdentity}'
+          Enabled: 'true'
+          HttpVersion: http2
+          IPV6Enabled: true
+          DefaultRootObject: index.html
+          DefaultCacheBehavior:
+            AllowedMethods:
+              - GET
+              - HEAD
+            TargetOriginId: S3-private-bucket
+            ForwardedValues:
+              QueryString: 'false'
+              Cookies:
+                Forward: none
+            ViewerProtocolPolicy: redirect-to-https
+          ViewerCertificate:
+            AcmCertificateArn: ${self:custom.config.CERTIFICATE_ARN}
+            MinimumProtocolVersion: TLSv1.2_2019
+            SslSupportMethod: sni-only
+
+    WebsiteDistributionOriginIdentity:
+      Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+      Properties:
+        CloudFrontOriginAccessIdentityConfig:
+          Comment: 'origin identity'
+
+    WebsiteMasterRecordSet:
+      Type: AWS::Route53::RecordSet
+      Properties:
+        Name: ${self:custom.config.HOSTNAME}.
+        Type: A
+        AliasTarget:
+          HostedZoneId: Z2FDTNDATAQYW2
+          DNSName: !GetAtt WebsiteDistribution.DomainName
+        HostedZoneId: ${self:custom.config.HOSTED_ZONE_ID}
+
+    WebsiteMasterAAAARecordSet:
+      Type: AWS::Route53::RecordSet
+      Properties:
+        Name: ${self:custom.config.HOSTNAME}.
+        Type: AAAA
+        AliasTarget:
+          HostedZoneId: Z2FDTNDATAQYW2
+          DNSName: !GetAtt WebsiteDistribution.DomainName
+        HostedZoneId: ${self:custom.config.HOSTED_ZONE_ID}
 
 
 package:

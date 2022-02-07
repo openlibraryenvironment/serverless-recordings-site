@@ -4,6 +4,9 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+structlog = "*"
+jinja2 = "*"
+pytz = "*"
 
 [dev-packages]
 nodeenv = "*"

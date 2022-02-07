@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+  <title>{{ meeting_topic|e }} ({{ start_time|e }}) | {{ organization|e }} Meeting Recordings</title>
+</head>
+
+<body>
+  <!-- Begin page content -->
+  <div class="container">
+    <div class="page-header">
+      <h1>{{ meeting_topic|e }}</h1>
+    </div>
+
+    <ul>
+      <li>Meeting topic: {{ meeting_topic|e }}</li>
+      <li>Start time: {{ start_time|e }}</li>
+      <li>End time: {{ end_time|e }}</li>
+    </ul>
+
+    <h2>Recordings</h2>
+    <ul>
+      {% for file in files %}
+      <li><a href="{{ file.s3_url|e }}">{{ file.recording_type|e }}</a></li>
+      {% endfor %}
+    </ul>
+
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <!-- <p class="text-muted">Powered by <i><a href=""></a></i>.</p> -->
+    </div>
+  </footer>
+</body>
+
+</html>
