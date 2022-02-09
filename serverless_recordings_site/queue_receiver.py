@@ -58,14 +58,17 @@ def create_organization_page(org, log):
         log.error(stage, reason="NONE FOUND", org=org, get_item_response=response)
         return
 
+    topics = list({v["meeting_topic"]: v for v in topics})
+    topics.sort()
+
     render_input = {
         "organization": org,
         "topics": [],
     }
     for topic in topics:
         entry = {
-            "meeting_topic": topic["meeting_topic"],
-            "meeting_topic_path": f"/{recording_path(organization=org, meeting_topic=topic['meeting_topic'])}/",
+            "meeting_topic": topic,
+            "meeting_topic_path": f"/{recording_path(organization=org, meeting_topic=topic)}/",
         }
         render_input["topics"].append(entry)
     fname = f"{recording_path(organization=org)}/index.html"
