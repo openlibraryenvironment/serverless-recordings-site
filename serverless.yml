@@ -132,6 +132,9 @@ resources:
               - GET
               - HEAD
             TargetOriginId: S3-private-bucket
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt WebsiteDistributionIndexRedirectFunction.FunctionMetadata.FunctionARN
             ForwardedValues:
               QueryString: 'false'
               Cookies:
@@ -141,6 +144,31 @@ resources:
             AcmCertificateArn: ${self:custom.config.CERTIFICATE_ARN}
             MinimumProtocolVersion: TLSv1.2_2019
             SslSupportMethod: sni-only
+
+    WebsiteDistributionIndexRedirectFunction:
+      Type: AWS::CloudFront::Function
+      Properties:
+        AutoPublish: true
+        FunctionCode: !Sub |
+                function handler(event) {
+                    var request = event.request;
+                    var uri = request.uri;
+                    
+                    // Check whether the URI is missing a file name.
+                    if (uri.endsWith('/')) {
+                        request.uri += 'index.html';
+                    } 
+                    // Check whether the URI is missing a file extension.
+                    else if (!uri.includes('.')) {
+                        request.uri += '/index.html';
+                    }
+
+                    return request;
+                }
+        FunctionConfig:
+          Comment: Redirect naked root to index.html
+          Runtime: cloudfront-js-1.0
+        Name: !Sub "${self:custom.stack_name}-redirectFunction"
 
     WebsiteDistributionOriginIdentity:
       Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
