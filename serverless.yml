@@ -99,18 +99,18 @@ resources:
           IndexDocument: index.html
           ErrorDocument: error.html
 
-    # WebsiteBucketPolicy:
-    #     Type: AWS::S3::BucketPolicy
-    #     Properties:
-    #       Bucket: !Ref WebsiteBucket
-    #       PolicyDocument:
-    #         Version: '2012-10-17'
-    #         Statement:
-    #           - Effect: Allow
-    #             Principal:
-    #               AWS: !Sub 'arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${WebsiteDistributionOriginIdentity}'
-    #             Action: 's3:GetObject'
-    #             Resource: !GetAtt WebsiteBucket.Arn
+    WebsiteBucketPolicy:
+        Type: AWS::S3::BucketPolicy
+        Properties:
+          Bucket: !Ref WebsiteBucket
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Principal:
+                  AWS: !Sub 'arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${WebsiteDistributionOriginIdentity}'
+                Action: 's3:GetObject'
+                Resource: !Sub 'arn:aws:s3:::${WebsiteBucket}/*'
             
     WebsiteDistribution:
       Type: AWS::CloudFront::Distribution
@@ -126,6 +126,10 @@ resources:
           Enabled: 'true'
           HttpVersion: http2
           IPV6Enabled: true
+          CustomErrorResponses:
+            - ErrorCode: 403
+              ResponseCode: 200
+              ResponsePagePath: /login.html
           DefaultRootObject: index.html
           DefaultCacheBehavior:
             AllowedMethods:
@@ -140,6 +144,25 @@ resources:
               Cookies:
                 Forward: none
             ViewerProtocolPolicy: redirect-to-https
+          CacheBehaviors:
+            - PathPattern: /*/*/
+              TargetOriginId: S3-private-bucket
+              ViewerProtocolPolicy: redirect-to-https
+              ForwardedValues:
+                QueryString: 'false'
+                Cookies:
+                  Forward: none
+              TrustedKeyGroups: 
+                - !Ref WebsiteDistributionPublicKeyGroup
+            - PathPattern: /*/*/index.html
+              TargetOriginId: S3-private-bucket
+              ViewerProtocolPolicy: redirect-to-https
+              ForwardedValues:
+                QueryString: 'false'
+                Cookies:
+                  Forward: none
+              TrustedKeyGroups: 
+                - !Ref WebsiteDistributionPublicKeyGroup
           ViewerCertificate:
             AcmCertificateArn: ${self:custom.config.CERTIFICATE_ARN}
             MinimumProtocolVersion: TLSv1.2_2019
@@ -166,7 +189,7 @@ resources:
                     return request;
                 }
         FunctionConfig:
-          Comment: Redirect naked root to index.html
+          Comment: Redirect bare root to index.html
           Runtime: cloudfront-js-1.0
         Name: !Sub "${self:custom.stack_name}-redirectFunction"
 
@@ -175,6 +198,23 @@ resources:
       Properties:
         CloudFrontOriginAccessIdentityConfig:
           Comment: 'origin identity'
+
+    WebsiteDistributionPublicKeyGroup:
+      Type: AWS::CloudFront::KeyGroup
+      Properties:
+        KeyGroupConfig:
+          Name: ${self:custom.stack_name}
+          Items: 
+            - !Ref WebsiteDistributionPublicKey
+
+    # Note well https://dltj.org/article/cloudformation-invalid-request-cloudfront-publickey/
+    WebsiteDistributionPublicKey:
+      Type: AWS::CloudFront::PublicKey
+      Properties:
+        PublicKeyConfig:
+          Name: ${self:custom.stack_name}
+          CallerReference: ${self:custom.config.PUBLIC_KEY_CALLER_REFERENCE}
+          EncodedKey: ${self:custom.config.PUBLIC_KEY_ENCODED}
 
     WebsiteMasterRecordSet:
       Type: AWS::Route53::RecordSet

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="icon"
+    href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAA81BMVEUAAAD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gD/3gAi3oArAAAAUHRSTlMAAQIEBwkMDQ4QERMUFhcYHyAhJSYoMTIzNDU2Nzg5PFJUVVlcXV5fYWZnaGlrcHR1fn+Cg4WeoK2vsLK0tbnDxcfKzM7P09fk5ujr7/H5+9EvcJcAAAEfSURBVBgZjcEJNwJhGIbhpyR7RMZSIzvZyZKlLNmJ+///Gt/7DaczNXVcl/5tbPv6rXW7k1Wy3DW/VpWkQtuquqQvMLWVjSZOVp0uMEtyDoGKOlQwJ/Ie4VZxObwZeRvwqbgbvLy8FXhVzDhOtZCfkHcJdcVsA2X9KQObiqlDTd5EvlDFySnmHZblTeM1FNeCdXkFvEnF3UNTXhVzrg57wIGcMpGSzMDVkSLDOA/ryzX+FOU04FiRNdrOMQtSqgmcKrLGr8akQsy8lHkGzhQZ2r1rvdW3cnJCzJxUwKmqW4gJRj8w++oWYlp8LTzBsxKEmO8pZZ5eBpUkxARSOq1kJUyg3kqYQL2VMIF6K2KG1VsRZ0Z9LEI9pX5GZlP6hx/dwltPR89e9wAAAABJRU5ErkJggg==">
+
+  <meta name="ROBOTS" content="NOINDEX, NOFOLLOW">
+
+  <title>Access denied</title>
+
+  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+
+  <style type="text/css">
+    .container {
+      margin-top: 1em;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <main role="main">
+      <div class="jumbotron">
+        <h1>Access denied</h1>
+        <p id="error" class="bg-danger"></p>
+        <p>
+        <form action="${api_url}" method="post">
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" class="form-control" id="password">
+          </div>
+
+          <button type="submit" class="btn btn-primary">Authenticate</button>
+        </form>
+        </p>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.2.1.min.js"
+    integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/js-cookie@2.1.4/src/js.cookie.js"
+    integrity="sha384-zfo3aN4O1oKdMpiAxnBEBvppZvyqJ+RLwxvGkcq90bVJBVDkEoPf1yeQHRy0yObs"
+    crossorigin="anonymous"></script>
+  <script>
+    $(document).ready(function () {
+      const form = $("form");
+      const apiUrl = $(form).attr("action");
+      const error = $("#error");
+
+      form.submit(function (event) {
+        event.preventDefault();
+
+        const password = $("#password").val();
+        $.ajax({
+          type: "POST",
+          url: apiUrl,
+          data: JSON.stringify({ password: password }),
+          contentType: "application/json",
+          success: function (data) {
+            error.hide();
+
+            Cookies.set("CloudFront-Expires", data.expires);
+            Cookies.set("CloudFront-Key-Pair-Id", data.keyPairId);
+            Cookies.set("CloudFront-Policy", data.policy);
+            Cookies.set("CloudFront-Signature", data.signature);
+
+            document.location = "/";
+          },
+          error: function (data) {
+            error.val(data.error);
+            error.show();
+          }
+        }, "json");
+      });
+    });
+  </script>
+</body>
+
+</html>

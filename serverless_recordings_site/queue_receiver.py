@@ -34,6 +34,12 @@ j2_env = jinja2.Environment(
     )
 )
 
+response = s3.Object(WEBSITE_BUCKET, "login.html").upload_file(
+    f"{os.environ['LAMBDA_TASK_ROOT']}/site_html/login.html",
+    ExtraArgs={"ContentType": "text/html"},
+)
+print(f"Upload login file to S3 bucket: {response=}")
+
 
 def _load_template(template):
     local_filename = f"/tmp/{template}"
@@ -79,7 +85,6 @@ def create_organization_page(org, log):
         response = s3.Bucket(WEBSITE_BUCKET).put_object(
             Key=fname,
             Body=topic_page,
-            ACL="public-read",
             ContentType="text/html",
         )
     except ClientError as e:
@@ -123,7 +128,6 @@ def create_topic_page(org, topic, log):
         response = s3.Bucket(WEBSITE_BUCKET).put_object(
             Key=fname,
             Body=topic_page,
-            ACL="public-read",
             ContentType="text/html",
         )
     except ClientError as e:
@@ -145,7 +149,6 @@ def create_meeting_page(meeting_document, log):
         response = s3.Bucket(WEBSITE_BUCKET).put_object(
             Key=fname,
             Body=meeting_page,
-            ACL="public-read",
             ContentType="text/html",
         )
     except ClientError as e:
