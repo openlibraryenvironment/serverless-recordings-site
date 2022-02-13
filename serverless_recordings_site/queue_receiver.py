@@ -8,7 +8,7 @@ from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
 from .util.log_config import setup_logging
-from .util.recording_path import recording_path
+from .util.recording_path import project_time, recording_path
 
 NOTIFY_WEBBUILDER_QUEUE_ARN = os.environ["NOTIFY_WEBBUILDER_QUEUE_ARN"]
 queue_name = NOTIFY_WEBBUILDER_QUEUE_ARN.split(":")[-1]
@@ -116,7 +116,9 @@ def create_topic_page(org, topic, log):
     }
     for meeting in meetings:
         entry = {
-            "start_time": meeting["start_time"],
+            "start_time": project_time(
+                meeting["start_time"], do_round=True, pretty=True
+            ),
             "recording_path": f"/{meeting['recording_path']}/",
         }
         render_input["meetings"].append(entry)
@@ -142,6 +144,12 @@ def create_meeting_page(meeting_document, log):
     stage = "Create meeting page"
 
     fname = f"{meeting_document['recording_path']}/index.html"
+    meeting_document["start_time"] = project_time(
+        meeting_document["start_time"], pretty=True
+    )
+    meeting_document["end_time"] = project_time(
+        meeting_document["end_time"], pretty=True
+    )
     log.info(stage, reason="Render input", render_input=meeting_document, fname=fname)
 
     meeting_page = j2_env.get_template("meeting.j2.html").render(**meeting_document)
