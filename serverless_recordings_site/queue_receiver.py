@@ -172,43 +172,25 @@ def handler(event, context):
     aws_request_id = "*NO CONTEXT*" if context is None else context.aws_request_id
     log = structlog.get_logger()
     log = log.bind(aws_request_id=aws_request_id)
-
     log.info("STARTED", queue_event=event)
 
-    ##STAGE Receive queue message
-    stage = "Receive queue message"
-    while True:
-        messages_to_delete = []
-        for message in webbuilder_notify.receive_messages(
-            AttributeNames=["SentTimestamp"],
-            MaxNumberOfMessages=1,
-            MessageAttributeNames=["All"],
-            VisibilityTimeout=20,
-            WaitTimeSeconds=0,
-        ):
-            log.debug(stage, reason="Received message", message=message)
-            body = json.loads(message.body)
-            log = log.bind(recording_id=body["recording_id"])
-            log.info(stage, reason="Processing message", message_body=body)
+    ##STAGE Process queue message
+    stage = "Process queue message"
+    for message in event["Records"]:
+        log.debug(stage, reason="Received message", message=message)
+        body = json.loads(message["body"])
+        log = log.bind(recording_id=body["recording_id"])
+        log.info(stage, reason="Processing message", message_body=body)
 
-            create_meeting_page(body, log)
-            create_topic_page(body["organization"], body["meeting_topic"], log)
-            create_organization_page(body["organization"], log)
+        create_meeting_page(body, log)
+        create_topic_page(body["organization"], body["meeting_topic"], log)
+        create_organization_page(body["organization"], log)
 
-            messages_to_delete.append(
-                {
-                    "Id": message.message_id,
-                    "ReceiptHandle": message.receipt_handle,
-                }
-            )
-
-        # Break out of While-True loop if no messages to delete (meaning
-        # no messages were received)
-        if len(messages_to_delete) == 0:
-            break
-        # Delete messages from the SQS queue
-        else:
-            response = webbuilder_notify.delete_messages(Entries=messages_to_delete)
-            log.debug(stage, reason="Deleted queue messages", response=response)
+        message_to_delete = {
+            "Id": message["messageId"],
+            "ReceiptHandle": message["receiptHandle"],
+        }
+        response = webbuilder_notify.delete_messages(Entries=[message_to_delete])
+        log.debug(stage, reason="Deleted message", response=response, message=message)
 
     return
