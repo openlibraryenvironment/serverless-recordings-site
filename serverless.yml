@@ -1,16 +1,14 @@
 service: recording-site
-frameworkVersion: '2 || 3'
+frameworkVersion: '3'
 
 provider:
   name: aws
   runtime: python3.8
   architecture: arm64
   memorySize: 128
-  lambdaHashingVersion: 20201221
   region: ${opt:region, env:AWS_REGION, 'us-east-1'}
   logRetentionInDays: ${opt:logretention, env:AWS_LOG_RETENTION, '14'}
   httpApi:
-    useProviderTags: true
     cors: true
   tags:
     Purpose: ${self:custom.stack_name}
@@ -18,28 +16,30 @@ provider:
     tags:
       Purpose: ${self:service}
 
-  iamRoleStatements:
-    - Effect: Allow
-      Action:
-        - dynamodb:Query
-        - dynamodb:Scan
-        - dynamodb:GetItem
-        - dynamodb:PutItem
-        - dynamodb:UpdateItem
-        - dynamodb:DeleteItem
-      Resource: ${self:custom.config.MEETINGS_TABLE_ARN}
-    - Effect: Allow
-      Action:
-        - s3:HeadObject
-        - s3:GetObject
-        - s3:PutObject
-        - s3:PutObjectAcl
-      Resource:
-        Fn::Join:
-          - ""
-          - - "arn:aws:s3:::"
-            - "Ref" : "WebsiteBucket"
-            - "/*"
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource: ${self:custom.config.MEETINGS_TABLE_ARN}
+        - Effect: Allow
+          Action:
+            - s3:HeadObject
+            - s3:GetObject
+            - s3:PutObject
+            - s3:PutObjectAcl
+          Resource:
+            Fn::Join:
+              - ""
+              - - "arn:aws:s3:::"
+                - "Ref" : "WebsiteBucket"
+                - "/*"
 
 
 custom:
@@ -262,13 +262,11 @@ resources:
 
 
 package:
-  include:
-    # - something
-  exclude:
-    - node_modules/**
-    - .venv/**
-    - __pycache__
-    - config.yml
+  patterns:
+    - '!node_modules/**'
+    - '!.venv/**'
+    - '!__pycache__'
+    - '!config.yml'
 
 plugins:
   - serverless-python-requirements
