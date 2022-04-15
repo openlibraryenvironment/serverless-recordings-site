@@ -18,6 +18,29 @@ provider:
     tags:
       Purpose: ${self:service}
 
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: ${self:custom.config.MEETINGS_TABLE_ARN}
+    - Effect: Allow
+      Action:
+        - s3:HeadObject
+        - s3:GetObject
+        - s3:PutObject
+        - s3:PutObjectAcl
+      Resource:
+        Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - "Ref" : "WebsiteBucket"
+            - "/*"
+
 
 custom:
   default_stage: dev
@@ -56,6 +79,24 @@ functions:
       NOTIFY_WEBBUILDER_QUEUE_ARN: ${self:custom.config.NOTIFY_WEBBUILDER_QUEUE_ARN}
       MEETINGS_TABLE_ARN: ${self:custom.config.MEETINGS_TABLE_ARN}
       WEBSITE_BUCKET: !Ref WebsiteBucket
+      CLOUDFRONT_ARN: !Ref WebsiteDistribution
+    iamRoleStatementsInherit: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - sqs:ReceiveMessage
+          - sqs:DeleteMessage
+          - sqs:GetQueueUrl
+        Resource: ${self:custom.config.NOTIFY_WEBBUILDER_QUEUE_ARN}
+
+  rebuild_site:
+    handler: serverless_recordings_site.rebuild_site.handler
+    timeout: 300
+    environment:
+      BASE_PATH: ${self:custom.config.BASE_PATH}
+      MEETINGS_TABLE_ARN: ${self:custom.config.MEETINGS_TABLE_ARN}
+      WEBSITE_BUCKET: !Ref WebsiteBucket
+      CLOUDFRONT_ID: !Ref WebsiteDistribution
     iamRoleStatementsInherit: true
     iamRoleStatements:
       - Effect: Allow
@@ -66,25 +107,8 @@ functions:
         Resource: ${self:custom.config.NOTIFY_WEBBUILDER_QUEUE_ARN}
       - Effect: Allow
         Action:
-          - dynamodb:Query
-          - dynamodb:Scan
-          - dynamodb:GetItem
-          - dynamodb:PutItem
-          - dynamodb:UpdateItem
-          - dynamodb:DeleteItem
-        Resource: ${self:custom.config.MEETINGS_TABLE_ARN}
-      - Effect: Allow
-        Action:
-          - s3:HeadObject
-          - s3:GetObject
-          - s3:PutObject
-          - s3:PutObjectAcl
-        Resource:
-          Fn::Join:
-            - ""
-            - - "arn:aws:s3:::"
-              - "Ref" : "WebsiteBucket"
-              - "/*"
+          - cloudfront:CreateInvalidation
+        Resource: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${WebsiteDistribution}'
 
 # CloudFormation resource templates
 resources:
@@ -191,7 +215,7 @@ resources:
         FunctionConfig:
           Comment: Redirect bare root to index.html
           Runtime: cloudfront-js-1.0
-        Name: !Sub "${self:custom.stack_name}-redirectFunction"
+        Name: !Sub "${self:custom.stack_name}-indexRedirectFunction"
 
     WebsiteDistributionOriginIdentity:
       Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
