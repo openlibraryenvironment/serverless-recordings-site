@@ -9,7 +9,7 @@
 
   <meta name="ROBOTS" content="NOINDEX, NOFOLLOW">
 
-  <title>Access denied</title>
+  <title>Password required</title>
 
   <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
 
@@ -24,17 +24,21 @@
   <div class="container">
     <main role="main">
       <div class="jumbotron">
-        <h1>Access denied</h1>
+        <h1>Password required.</h1>
         <p id="error" class="bg-danger"></p>
         <p>
-        <form action="${api_url}" method="post">
+        <form action="/_login" method="post">
           <div class="form-group">
             <label for="password">Password</label>
             <input type="password" class="form-control" id="password">
           </div>
 
-          <button type="submit" class="btn btn-primary">Authenticate</button>
+          <button id="submission" type="submit" class="btn btn-primary">Authenticate</button>
         </form>
+        </p>
+        <p>
+          Access to this meeting requires a password. The password is usually the same one used to join the live Zoom
+          meeting. Please contact the meeting convener for the password.
         </p>
       </div>
     </main>
@@ -49,30 +53,35 @@
     $(document).ready(function () {
       const form = $("form");
       const apiUrl = $(form).attr("action");
-      const error = $("#error");
+      const error_div = $("#error");
+      const submit_button = $("#submission");
+      error_div.hide();
 
       form.submit(function (event) {
         event.preventDefault();
+        submit_button.text("Checking...");
 
         const password = $("#password").val();
+        const current_page = window.location.href;
         $.ajax({
           type: "POST",
           url: apiUrl,
-          data: JSON.stringify({ password: password }),
+          data: JSON.stringify({ password: password, current_page: current_page }),
           contentType: "application/json",
           success: function (data) {
-            error.hide();
 
-            Cookies.set("CloudFront-Expires", data.expires);
-            Cookies.set("CloudFront-Key-Pair-Id", data.keyPairId);
-            Cookies.set("CloudFront-Policy", data.policy);
-            Cookies.set("CloudFront-Signature", data.signature);
+            //            Cookies.set("CloudFront-Expires", data.expires);
+            Cookies.set("CloudFront-Key-Pair-Id", data.CloudFrontKeyPairId);
+            Cookies.set("CloudFront-Policy", data.CloudFrontPolicy);
+            Cookies.set("CloudFront-Signature", data.CloudFrontSignature);
 
-            document.location = "/";
+            document.location = current_page;
+            //            document.location.reload(true);
           },
-          error: function (data) {
-            error.val(data.error);
-            error.show();
+          error: function (xhr, status, error) {
+            error_div.text(xhr.responseJSON.error);
+            error_div.show();
+            submit_button.text("Authenticate");
           }
         }, "json");
       });
