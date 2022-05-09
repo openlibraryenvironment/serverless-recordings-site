@@ -150,7 +150,7 @@ resources:
               S3OriginConfig:
                 OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${WebsiteDistributionOriginIdentity}'
 #            - DomainName: REPLACE.WITH.AuthUnderscorecheckLambdaFunctionUrl.FunctionUrl
-            - DomainName: lnzsi4e56cr6rw6abllhun5yky0jknwp.lambda-url.us-east-1.on.aws
+            - DomainName: ${self:custom.config.AUTH_ENDPOINT_DEVTEMP}
               Id: auth-check
               CustomOriginConfig:
                 OriginProtocolPolicy: https-only
