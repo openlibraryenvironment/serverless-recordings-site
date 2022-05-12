@@ -80,6 +80,8 @@ functions:
   queue_receiver:
     handler: serverless_recordings_site.queue_receiver.handler
     timeout: 10
+    events:
+      - sqs: ${self:custom.config.NOTIFY_WEBBUILDER_QUEUE_ARN}
     iamRoleStatementsInherit: true
     iamRoleStatements:
       - Effect: Allow
@@ -88,6 +90,10 @@ functions:
           - sqs:DeleteMessage
           - sqs:GetQueueUrl
         Resource: ${self:custom.config.NOTIFY_WEBBUILDER_QUEUE_ARN}
+      - Effect: Allow
+        Action:
+          - cloudfront:CreateInvalidation
+        Resource: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${WebsiteDistribution}'
   
   auth_check:
     handler: serverless_recordings_site.authn_check.handler

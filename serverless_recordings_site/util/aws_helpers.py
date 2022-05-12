@@ -8,8 +8,9 @@ def invalidate_cache(id):
 
     :returns: boto3.client.create_invalidation() response
     """
-    if len(params.cache_invalidations) < 10:
-        cache_invalidations = params.cache_invalidations
+    cache_invalidations = list(dict.fromkeys(params.cache_invalidations))
+    if len(cache_invalidations) < 10:
+        cache_invalidations = ["/" + path for path in cache_invalidations]
     else:
         cache_invalidations = ["/*"]
     params.cache_invalidations = list()
@@ -21,6 +22,9 @@ def invalidate_cache(id):
         "CallerReference": id,
     }
 
+    params.log.debug(
+        reason="Sending invalidation batch", invalidation_batch=invalidation_batch
+    )
     response = params.cloudfront.create_invalidation(
         DistributionId=params.CLOUDFRONT_ID,
         InvalidationBatch=invalidation_batch,
