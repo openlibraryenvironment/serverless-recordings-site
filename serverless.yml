@@ -187,7 +187,7 @@ resources:
             - PathPattern: /*/*/*/
               TargetOriginId: S3-private-bucket
               ViewerProtocolPolicy: redirect-to-https
-              CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # CachingOptimized managed policy
+              CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad # CachingDisabled managed policy
               FunctionAssociations:
                 - EventType: viewer-request
                   FunctionARN: !GetAtt WebsiteDistributionIndexRedirectFunction.FunctionMetadata.FunctionARN
@@ -196,7 +196,7 @@ resources:
             - PathPattern: /*/*/*/index.html
               TargetOriginId: S3-private-bucket
               ViewerProtocolPolicy: redirect-to-https
-              CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # CachingOptimized managed policy
+              CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad # CachingDisabled managed policy
               TrustedKeyGroups: 
                 - !Ref WebsiteDistributionPublicKeyGroup
             - PathPattern: /_login

@@ -76,7 +76,7 @@
             Cookies.set("CloudFront-Signature", data.CloudFrontSignature);
 
             document.location = current_page;
-            //            document.location.reload(true);
+            document.location.reload(true);
           },
           error: function (xhr, status, error) {
             error_div.text(xhr.responseJSON.error);
